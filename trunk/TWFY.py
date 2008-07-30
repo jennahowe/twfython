@@ -18,6 +18,8 @@ A library that provides a python interface to the TWFY API(http://www.theyworkfo
 __author__ = 'dorzey@googlemail.com'
 __version__ = '0.1'
 
+import datetime
+import time
 import urllib
 
 class TWFY():
@@ -33,6 +35,20 @@ class TWFY():
     def __init__(self, apiKey):
         self.apiKey = apiKey
 
+    def isValidDate(self, date):
+        if date == '':
+            return True
+        else:
+            try:
+                c = time.strptime(date,"%d/%m/%Y")
+                #print time.strftime("%Y %m %d",c)
+                if datetime.datetime(*c[:6]).date() <= datetime.datetime.today().date():
+                    return True
+                else:
+                    return False
+            except ValueError:
+                return False
+
     def twfy(self,function, output, params={}):
         """
         Generic function to call the api.
@@ -45,7 +61,7 @@ class TWFY():
             print url
             return urllib.urlopen(url).read()
         else:
-            print 'Invalid out supplied'
+            print 'Invalid out/function supplied'
 
     def convertURL(self, output, url):
         """
@@ -63,9 +79,12 @@ class TWFY():
         """
         Returns list of constituencies
         """
-        return self.twfy('getConstituencies',output,\
+        if isValidDate(self,date):
+            return self.twfy('getConstituencies',output,\
                              {'date':date,'search':search,\
                                   'latitude':latitude,'longitude':longitude,'distance':distance})
+        else:
+            print 'Invalid date'
 
     def getMP(self, output,postcode="",constituency="",id="",always_return=""):
         """
@@ -84,7 +103,10 @@ class TWFY():
         """
         Returns list of MPs
         """
-        return self.twfy('getMps',output,{'date':date,'party':party,'search':search})
+        if isValidDate(self,date):
+            return self.twfy('getMps',output,{'date':date,'party':party,'search':search})
+        else:
+            print 'Invalid date'
 
     def getLord(self, output,id):
         """
@@ -96,13 +118,19 @@ class TWFY():
         """
         Returns list of Lords
         """
-        return self.twfy('getLords',output,{'date':date,'party':party,'search':search})
+        if isValidDate(self,date):
+            return self.twfy('getLords',output,{'date':date,'party':party,'search':search})
+        else:
+            print 'Invalid date'
 
-    def getMLAs(self, output):
+    def getMLAs(self, output, date="",party="",search=""):
         """
         Returns list of MLAs
         """
-        return self.twfy('getMLAs',output,{'date':date,'party':party,'search':search})
+        if isValidDate(self,date):
+            return self.twfy('getMLAs',output,{'date':date,'party':party,'search':search})
+        else:
+            print 'Invalid date'
 
     def getMSP(self, output,postcode="",constituency="",id=""):
         """
@@ -114,7 +142,10 @@ class TWFY():
         """
         Returns list of MSPs
         """
-        return self.twfy('getMSPs',output,{'date':date,'party':party,'search':search})
+        if isValidDate(self,date):
+            return self.twfy('getMSPs',output,{'date':date,'party':party,'search':search})
+        else:
+            print 'Invalid date'
 
     def getGeometry(self, output,name=""):
         """
@@ -126,42 +157,54 @@ class TWFY():
         """
         Returns members of Select Committee
         """
-        return self.twfy('getCommittee',output,{'name':name,'date':date})
+        if isValidDate(self,date):
+            return self.twfy('getCommittee',output,{'name':name,'date':date})
+        else:
+            print 'Invalid date'
 
     def getDebates(self, output,type,date="",search="",person="",gid="",order="",page="",num=""):
         """
         Returns Debates (either Commons, Westminhall Hall, or Lords).This includes Oral Questions.
         """
-        if type in types:
+        if type in types and isValidDate(self,date):
             return self.twfy('getDebates',output,{'type':type,'date':date,'search':search,'person':person,\
                                                   'gid':gid,'order':order,'page':page,'num':num})
         else:
-            print 'Invalid type provided'
+            print 'Invalid type/date provided'
 
     def getWrans(self, output,date="",search="",person="",gid="",order="",page="",num=""):
         """
         Returns Written Answers
         """
-        return self.twfy('getWrans',output,{'date':date,'search':search,'person':person,'gid':gid,\
+        if isValidDate(self,date):
+            return self.twfy('getWrans',output,{'date':date,'search':search,'person':person,'gid':gid,\
                                                   'order':order,'page':page,'num':num})
+        else:
+            print 'Invalid date'
 
     def getWMS(self, output,date="",search="",person="",gid="",order="",page="",num=""):
         """
         Returns Written Ministerial Statements
         """
-        return self.twfy('getWMS',output,{'date':date,'search':search,'person':person,'gid':gid,\
+        if isValidDate(self,date):
+            return self.twfy('getWMS',output,{'date':date,'search':search,'person':person,'gid':gid,\
                                                   'order':order,'page':page,'num':num})
+        else:
+            print 'Invalid date'
 
     def getHansard(self, output,search="",person="",order="",page="",num=""):
         """
         Returns any of the above(Debates,Wrans,WMS)
         """
-        return self.twfy('getHansard',output,{'date':date,'search':search,'person':person,'order':order,\
+        return self.twfy('getHansard',output,{'search':search,'person':person,'order':order,\
                                                   'page':page,'num':num})
 
     def getComments(self, output,date="",search="",user_id="",pid="",page="",num=""):
         """
         Returns comments. With no arguments, returns most recent comments in reverse date order.
         """
-        return self.twfy('getComments',output,{'date':date,'search':search,'user_id':user_id,'pid':pid,\
+        if isValidDate(self,date):
+            return self.twfy('getComments',output,{'date':date,'search':search,'user_id':user_id,'pid':pid,\
                                                   'page':page,'num':num})
+        else:
+            print 'Invalid date'
