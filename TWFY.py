@@ -23,7 +23,6 @@ import time
 import urllib
 
 class TWFY():
-    """B6DKutCjm8AqEXnFsFE2U4er"""
     BASE_URL="http://www.theyworkforyou.com/api/%(function)s?key=%(key)s&output=%(output)s&(args)s"
     apiKey=""
     outputs=['xml','php','js','rabx']
