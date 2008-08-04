@@ -14,16 +14,13 @@ An example that uses the python interface to the TWFY API(http://www.theyworkfor
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
-
-__author__ = 'dorzey@googlemail.com'
-__version__ = '0.1'
-
 from twfy import TWFY
 from xml.dom import minidom
 
-y = TWFY.TWFY('PUT_YOUR_APIKEY_HERE')
+y = TWFY.TWFY('PUT.YOUR_APIKEY_HERE')
 #Get list of all MPs
-x = minidom.parseString(y.getMPs('xml','20/08/2007'))
+#A date between '01/05/1997' and todays date.
+x = minidom.parseString(y.getMPs('xml','01/08/2008'))
 #Just get the XML elements that are 'party'
 results = x.getElementsByTagName('party')
 partylist=[]    #List of party names
