@@ -1,5 +1,5 @@
 '''
-testTWFY.py v.0.1
+testTWFY.py v.0.2
 Author: dorzey@gmail.com
 
 A library that provides a python binding to the TWFY API(http://www.theyworkforyou.com/api/)
@@ -21,194 +21,105 @@ import datetime
 import time
 import urllib
 
+#API Spec
+API = {'twfy':{
+       'convertURL':[('output','url',),()], 
+       'getConstituency':[('output','postcode',),()], 
+       'getConstituencies':[('output',),('date', 'search', 'latitude', 'longitude', 'distance')], 
+       'getMP':[('output',),('postcode', 'constituency', 'id', 'always_return')], 
+       'getMPInfo':[('output','id',),('fields')],
+       'getMPsInfo':[('output','id',),('fields')],  
+       'getMPs':[('output',),('date', 'party', 'search')], 
+       'getLord':[('output','id',),()], 
+       'getLords':[('output',),('date', 'party', 'search')], 
+       'getMLAs':[('output',),('date', 'party', 'search')], 
+       'getMSP':[('output',),('postcode', 'constituency', 'id')], 
+       'getMSPs':[('output',),('date', 'party', 'search')], 
+       'getGeometry':[('output',),('name',)], 
+       'getCommittee':[('output','name',),('date',)],
+       'getDebates':[('output','type',),('date', 'search', 'person', 'gid', 'order', 'page', 'num')], 
+       'getWrans':[('output',),('date', 'search', 'person', 'gid', 'order', 'page', 'num')], 
+       'getWMS':[('output',),('date', 'search', 'person', 'gid', 'order', 'page', 'num')], 
+       'getHansard':[('output',),('search', 'person', 'order', 'page', 'num')], 
+       'getComments':[('output',),('date', 'search', 'user_id', 'pid', 'page', 'num')]} 
+        }
+
+SERVICE_URL = 'http://www.theyworkforyou.com/api/'
+OUTPUTS=['xml', 'php', 'js', 'rabx']
+TYPES=['commons', 'westminsterhall', 'lords']
+
 class TWFY():
-    apiKey=""
-    errors={'function':'Invalid function', 'output':'Invalid output supplied', 'date':'Invalid date',\
-             'type':'Invalid type provided'}
-    functions=['convertURL', 'getConstituency', 'getConstituencies', 'getMP', 'getMPInfo', 'getMPs', \
-                   'getLord', 'getLords', 'getMLAs', 'getMSP', 'getMSPs', 'getGeometry', 'getCommittee'\
-                   'getDebates', 'getWrans', 'getWMS', 'getHansard', 'getComments']        
-    outputs=['xml', 'php', 'js', 'rabx']
-    types=['commons', 'westminsterhall', 'lords']
-
-
     def __init__(self, apiKey):
         self.apiKey = apiKey
+        # this enables 'twfy.getMP()', for example
+        for prefix, methods in API.items():
+            setattr(self, prefix, TWFYAPICategory(self, prefix, methods))
+       
+    def get(self, **params):
+        """
+        Calls the twfy API
+        """
+        params['key'] = self.apiKey
+        method = params['method']
+        del params['method']
+        params_encoded = urllib.urlencode(params)
+        return urllib.urlopen(SERVICE_URL+method+'?'+params_encoded).read()
+'''
 
-    def isValidDate(self, date):
-        if date == '':
-            return True
+TWFYAPICategory is a modified version of RTMAPICategory in pyrtm (http://repo.or.cz/w/pyrtm.git)
+'''
+class TWFYAPICategory:
+   "See the `API` structure and `TWFY.__init__`"
+
+   def __init__(self, twfy, prefix, methods):
+        self.twfy = twfy
+        self.prefix = prefix
+        self.methods = methods
+
+   def __getattr__(self, attr):
+        if attr in self.methods:
+            rargs, oargs = self.methods[attr]
+            return lambda **params: self.callMethod(attr, rargs, oargs, **params)
         else:
-            try:
-                c = time.strptime(date, "%d/%m/%Y")
-                if datetime.datetime(*c[:6]).date() <= datetime.datetime.today().date():
-                    return True
-                else:
-                    return False
-            except (ValueError, TypeError):
+            raise AttributeError, 'No such attribute: %s' % attr
+
+   def callMethod(self, aname, rargs, oargs, **params):
+        """
+        Checks for errors before calling the API"
+        """
+        if params['output'] in OUTPUTS:
+            for requiredArg in rargs:
+                if requiredArg not in params:
+                    raise TypeError, 'Required parameter (%s) missing' % requiredArg
+
+            for param in params:
+                if param not in rargs + oargs:
+                    raise TypeError,'Invalid parameter (%s)' % param
+            
+            if 'type' in params:
+                if params['type'] not in TYPES:
+                    raise TypeError, 'Invalid type given: (%s)' % params['type']
+                
+            if 'date' in params:
+                if not isValidDate(params['date']):
+                    raise TypeError, 'Invalid date given: (%s)' % params['date']
+                
+            return self.twfy.get(method=aname,**params)
+        else:
+            raise TypeError, 'Invalid output given: (%s)' % params['output']
+
+def isValidDate(date):
+    """
+    Checks to see if the date is valid. dd/mm/yyyy
+    """
+    if date == '':
+        return True
+    else:
+        try:
+            c = time.strptime(date, "%d/%m/%Y")
+            if datetime.datetime(*c[:6]).date() <= datetime.datetime.today().date():
+                return True
+            else:
                 return False
-
-    def twfy(self, function, output, params={}):
-        """
-        Generic function to call the api.
-        Modified from MPFight(telnet://seagrass.goatchurch.org.uk:646/)
-        """
-        if output in self.outputs:
-            if function in self.functions:
-                params_encoded = urllib.urlencode(params)
-                url = "http://www.theyworkforyou.com/api/%s?key=%s&output=%s&%s" \
-                % (function, self.apiKey, output, params_encoded);
-                return urllib.urlopen(url).read()
-            else:
-                return self.errors.get('function')
-        else:
-           return self.errors.get('output')
-
-    def convertURL(self, output, url):
-        """
-        Converts a parliament.uk Hansard URL into a TheyWorkForYou one, if possible
-        """
-        return self.twfy('convertURL', output, {'url':url})
-
-    def getConstituency(self, output, postcode):
-        """
-        Searches for a constituency
-        """
-        return self.twfy('getConstituency', output, {'postcode':postcode})
-
-    def getConstituencies(self, output, date="", search="", latitude="", longitude="", distance=""):
-        """
-        Returns list of constituencies
-        """
-        if isValidDate(self, date):
-            return self.twfy('getConstituencies', output, \
-                             {'date':date, 'search':search, \
-                                  'latitude':latitude, 'longitude':longitude, 'distance':distance})
-        else:
-            return 'Invalid date'
-
-    def getMP(self, output, postcode="", constituency="", id="", always_return=""):
-        """
-        Returns main details for an MP
-        """
-        return self.twfy('getMP', output, {'postcode':postcode, 'constituency':constituency, \
-                                             'id':id, 'always_return':always_return})
-
-    def getMPInfo(self, output, id):
-        """
-        Returns extra information for a person
-        """
-        return self.twfy('getMPInfo', output, {'id':id})
-
-    def getMPs(self, output, date="", party="", search=""):
-        """
-        Returns list of MPs
-        """
-        if self.isValidDate(date):
-            return self.twfy('getMPs', output, {'date':date, 'party':party, 'search':search})
-        else:
-            return self.errors.get('date')
-
-    def getLord(self, output, id):
-        """
-        Returns details for a Lord
-        """
-        return self.twfy('getLord', output, {'id':id})
-
-    def getLords(self, output, date="", party="", search=""):
-        """
-        Returns list of Lords
-        """
-        if self.isValidDate(date):
-            return self.twfy('getLords', output, {'date':date, 'party':party, 'search':search})
-        else:
-            return self.errors.get('date')
-
-    def getMLAs(self, output, date="", party="", search=""):
-        """
-        Returns list of MLAs
-        """
-        if self.isValidDate(date):
-            return self.twfy('getMLAs', output, {'date':date, 'party':party, 'search':search})
-        else:
-            return self.errors.get('date')
-
-    def getMSP(self, output, postcode="", constituency="", id=""):
-        """
-        Returns details for an MSP
-        """
-        return self.twfy('getMSP', output, {'postcode':postcode, 'constituency':constituency, 'id':id})
-
-    def getMSPs(self, output, date="", party="", search=""):
-        """
-        Returns list of MSPs
-        """
-        if self.isValidDate(date):
-            return self.twfy('getMSPs', output, {'date':date, 'party':party, 'search':search})
-        else:
-            return self.errors.get('date')
-
-    def getGeometry(self, output, name=""):
-        """
-        Returns centre, bounding box of constituencies
-        """
-        return self.twfy('getGeometry', output, {'name':name})
-
-    def getCommittee(self, output, name, date=""):
-        """
-        Returns members of Select Committee
-        """
-        if self.isValidDate(date):
-            return self.twfy('getCommittee', output, {'name':name, 'date':date})
-        else:
-            return self.errors.get('date')
-
-    def getDebates(self, output, type, date="", search="", person="", gid="", order="", page="", num=""):
-        """
-        Returns Debates (either Commons, Westminhall Hall, or Lords).This includes Oral Questions.
-        """
-        if type in types:
-            if self.isValidDate(date):
-                return self.twfy('getDebates', output, {'type':type, 'date':date, 'search':search, 'person':person, \
-                                                  'gid':gid, 'order':order, 'page':page, 'num':num})
-            else:
-                return self.errors.get('date')
-        else:
-            return self.errors.get('type')
-
-    def getWrans(self, output, date="", search="", person="", gid="", order="", page="", num=""):
-        """
-        Returns Written Answers
-        """
-        if self.isValidDate(date):
-            return self.twfy('getWrans', output, {'date':date, 'search':search, 'person':person, 'gid':gid, \
-                                                  'order':order, 'page':page, 'num':num})
-        else:
-            return self.errors.get('date')
-
-    def getWMS(self, output, date="", search="", person="", gid="", order="", page="", num=""):
-        """
-        Returns Written Ministerial Statements
-        """
-        if self.isValidDate(date):
-            return self.twfy('getWMS', output, {'date':date, 'search':search, 'person':person, 'gid':gid, \
-                                                  'order':order, 'page':page, 'num':num})
-        else:
-            return self.errors.get('date')
-
-    def getHansard(self, output, search="", person="", order="", page="", num=""):
-        """
-        Returns any of the above(Debates,Wrans,WMS)
-        """
-        return self.twfy('getHansard', output, {'search':search, 'person':person, 'order':order, \
-                                                  'page':page, 'num':num})
-
-    def getComments(self, output, date="", search="", user_id="", pid="", page="", num=""):
-        """
-        Returns comments. With no arguments, returns most recent comments in reverse date order.
-        """
-        if self.isValidDate(date):
-            return self.twfy('getComments', output, {'date':date, 'search':search, 'user_id':user_id, 'pid':pid, \
-                                                  'page':page, 'num':num})
-        else:
-            return self.errors.get('date')
+        except (ValueError, TypeError):
+            return False

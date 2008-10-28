@@ -17,10 +17,10 @@ An example that uses the python interface to the TWFY API(http://www.theyworkfor
 from twfy import TWFY
 from xml.dom import minidom
 
-y = TWFY.TWFY('PUT.YOUR_APIKEY_HERE')
+y = TWFY.TWFY('PUT_YOUR_API_KEY_HERE')
 #Get list of all MPs
 #A date between '01/05/1997' and todays date.
-x = minidom.parseString(y.getMPs('xml','01/08/2008'))
+x = minidom.parseString(y.twfy.getMPs(output='xml',date='01/08/2008'))
 #Just get the XML elements that are 'party'
 results = x.getElementsByTagName('party')
 partylist=[]    #List of party names
