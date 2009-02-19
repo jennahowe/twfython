@@ -1,5 +1,5 @@
 '''
-testTWFY.py v.0.2
+testTWFY.py v.0.2.1
 Author: dorzey@gmail.com
 
 A library that provides a python binding to the TWFY API(http://www.theyworkforyou.com/api/)
@@ -23,34 +23,37 @@ import urllib
 
 #API Spec
 API = {'twfy':{
-       'convertURL':[('output','url',),()], 
-       'getConstituency':[('output','postcode',),()], 
-       'getConstituencies':[('output',),('date', 'search', 'latitude', 'longitude', 'distance')], 
-       'getMP':[('output',),('postcode', 'constituency', 'id', 'always_return')], 
-       'getMPInfo':[('output','id',),('fields')],
-       'getMPsInfo':[('output','id',),('fields')],  
-       'getMPs':[('output',),('date', 'party', 'search')], 
-       'getLord':[('output','id',),()], 
-       'getLords':[('output',),('date', 'party', 'search')], 
-       'getMLAs':[('output',),('date', 'party', 'search')], 
-       'getMSP':[('output',),('postcode', 'constituency', 'id')], 
-       'getMSPs':[('output',),('date', 'party', 'search')], 
-       'getGeometry':[('output',),('name',)], 
-       'getCommittee':[('output','name',),('date',)],
-       'getDebates':[('output','type',),('date', 'search', 'person', 'gid', 'order', 'page', 'num')], 
-       'getWrans':[('output',),('date', 'search', 'person', 'gid', 'order', 'page', 'num')], 
-       'getWMS':[('output',),('date', 'search', 'person', 'gid', 'order', 'page', 'num')], 
-       'getHansard':[('output',),('search', 'person', 'order', 'page', 'num')], 
-       'getComments':[('output',),('date', 'search', 'user_id', 'pid', 'page', 'num')]} 
+       'convertURL':[('output', 'url',), ()],
+       'getConstituency':[('output', 'postcode',), ()],
+       'getConstituencies':[('output',), ('date', 'search', 'latitude', 'longitude', 'distance')],
+       'getMP':[('output',), ('postcode', 'constituency', 'id', 'always_return')],
+       'getMPInfo':[('output', 'id',), ('fields')],
+       'getMPsInfo':[('output', 'id',), ('fields')],
+       'getMPs':[('output',), ('date', 'party', 'search')],
+       'getLord':[('output', 'id',), ()],
+       'getLords':[('output',), ('date', 'party', 'search')],
+       'getMLAs':[('output',), ('date', 'party', 'search')],
+       'getMSP':[('output',), ('postcode', 'constituency', 'id')],
+       'getMSPs':[('output',), ('date', 'party', 'search')],
+       'getGeometry':[('output',), ('name',)],
+       'getCommittee':[('output', 'name',), ('date',)],
+       'getDebates':[('output', 'type',), ('date', 'search', 'person', 'gid', 'order', 'page', 'num')],
+       'getWrans':[('output',), ('date', 'search', 'person', 'gid', 'order', 'page', 'num')],
+       'getWMS':[('output',), ('date', 'search', 'person', 'gid', 'order', 'page', 'num')],
+       'getHansard':[('output',), ('search', 'person', 'order', 'page', 'num')],
+       'getComments':[('output',), ('date', 'search', 'user_id', 'pid', 'page', 'num')]} 
         }
 
+OUTPUTS = ['xml', 'php', 'js', 'rabx']
 SERVICE_URL = 'http://www.theyworkforyou.com/api/'
-OUTPUTS=['xml', 'php', 'js', 'rabx']
-TYPES=['commons', 'westminsterhall', 'lords']
+TYPES = ['commons', 'westminsterhall', 'lords']
 
 class TWFY():
-    def __init__(self, apiKey):
-        self.apiKey = apiKey
+    """
+    Create an instance of this class with an API key to enable python bindings
+    """
+    def __init__(self, api_key):
+        self.api_key = api_key
         # this enables 'twfy.getMP()', for example
         for prefix, methods in API.items():
             setattr(self, prefix, TWFYAPICategory(self, prefix, methods))
@@ -59,56 +62,56 @@ class TWFY():
         """
         Calls the twfy API
         """
-        params['key'] = self.apiKey
+        params['key'] = self.api_key
         method = params['method']
         del params['method']
         params_encoded = urllib.urlencode(params)
         return urllib.urlopen(SERVICE_URL+method+'?'+params_encoded).read()
-'''
 
-TWFYAPICategory is a modified version of RTMAPICategory in pyrtm (http://repo.or.cz/w/pyrtm.git)
-'''
 class TWFYAPICategory:
-   "See the `API` structure and `TWFY.__init__`"
-
-   def __init__(self, twfy, prefix, methods):
+    """
+    TWFYAPICategory is a modified version of RTMAPICategory in pyrtm (http://repo.or.cz/w/pyrtm.git)
+    See the `API` structure and `TWFY.__init__`
+    """
+   
+    def __init__(self, twfy, prefix, methods):
         self.twfy = twfy
         self.prefix = prefix
         self.methods = methods
 
-   def __getattr__(self, attr):
+    def __getattr__(self, attr):
         if attr in self.methods:
             rargs, oargs = self.methods[attr]
-            return lambda **params: self.callMethod(attr, rargs, oargs, **params)
+            return lambda **params: self.call_method(attr, rargs, oargs, **params)
         else:
             raise AttributeError, 'No such attribute: %s' % attr
 
-   def callMethod(self, aname, rargs, oargs, **params):
+    def call_method(self, aname, rargs, oargs, **params):
         """
         Checks for errors before calling the API"
         """
         if params['output'] in OUTPUTS:
-            for requiredArg in rargs:
-                if requiredArg not in params:
-                    raise TypeError, 'Required parameter (%s) missing' % requiredArg
+            for required in rargs:
+                if required not in params:
+                    raise TypeError, 'Required parameter (%s) missing' % required
 
             for param in params:
                 if param not in rargs + oargs:
-                    raise TypeError,'Invalid parameter (%s)' % param
+                    raise TypeError, 'Invalid parameter (%s)' % param
             
             if 'type' in params:
                 if params['type'] not in TYPES:
                     raise TypeError, 'Invalid type given: (%s)' % params['type']
                 
             if 'date' in params:
-                if not isValidDate(params['date']):
+                if not is_valid_date(params['date']):
                     raise TypeError, 'Invalid date given: (%s)' % params['date']
                 
-            return self.twfy.get(method=aname,**params)
+            return self.twfy.get(method=aname, **params)
         else:
             raise TypeError, 'Invalid output given: (%s)' % params['output']
 
-def isValidDate(date):
+def is_valid_date(date):
     """
     Checks to see if the date is valid. dd/mm/yyyy
     """
