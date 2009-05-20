@@ -15,35 +15,24 @@ An example that uses the python interface to the TWFY API(http://www.theyworkfor
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 from twfy import TWFY
-from xml.dom import minidom
+import json
 
-y = TWFY.TWFY('PUT_YOUR_API_KEY_HERE')
+twfy = TWFY.TWFY('PUT_YOUR_API_KEY_HERE')
 #Get list of all MPs
 #A date between '01/05/1997' and todays date.
-x = minidom.parseString(y.twfy.getMPs(output='xml',date='01/08/2008'))
-#Just get the XML elements that are 'party'
-results = x.getElementsByTagName('party')
-partylist=[]    #List of party names
-partySet = set()#Set of part names
+mp_list = json.loads(twfy.api.getMPs(output='js',date='01/08/2008'), 'iso-8859-1')
+results = {}
 
-for party in results:
-    xml = party.toxml()
-    xml = xml[7:-8]
-    partylist.append(xml)
-    partySet.add(xml)#Duplicate elements will not be added
+#Count the number of MPs for each party.
+for mp in mp_list:
+    party =  mp['party']
+    if party in results.keys():
+        results[party] += 1
+    else:
+        results[party] = 1
+        
+total_seats = float(sum(results.values()))
 
-finalResults={}
-for ele in partySet:
-    finalResults[ele]=partylist.count(ele)
-
-totalSeats =0
-for k,v in finalResults.iteritems():
-    totalSeats = totalSeats + v
-
-percentResults={}   
-floatTotalSeats = float(totalSeats) #To stop division returning an integer 
-for k,v in finalResults.iteritems():
-    percentResults[k]= (v/floatTotalSeats )*100
-    
-for k,v in percentResults.iteritems():
-    print str(k)+' = '+str(v)+'%'
+#Print the results.
+for k, v in results.iteritems():
+    print k, ' = ', (v/total_seats)*100, '%'
