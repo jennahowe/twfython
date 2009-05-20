@@ -1,5 +1,5 @@
 """
-testTWFY.py v.0.1
+testTWFY.py v.0.2
 Author: dorzey@gmail.com
 
    This program is free software: you can redistribute it and/or modify
@@ -19,7 +19,7 @@ import unittest
 from sys import argv
 from twfy import TWFY
 
-API_KEY = "YOUR API KEY"
+API_KEY = "YOUR API KEY HERE"
 CONSTITUENCY = "Aberdeen North"
 ERRORLIST = ("\"error\"" ,"T5:error" ,"<error>")
 LORDID = "13375"
@@ -62,7 +62,7 @@ class TWFYTestCase(unittest.TestCase):
     def test_twfy_calls(self):
         """Tests that all possible (not all param variations) calls can be made."""
         i = 0
-        for k, v in TWFY.API['twfy'].iteritems():
+        for k, v in TWFY.API['api'].iteritems():
             params = {}
             params['method'] = k
             for value in v[0]:
@@ -92,5 +92,3 @@ class TWFYTestCase(unittest.TestCase):
     
 if __name__ == '__main__':
     unittest.main()
-
-    

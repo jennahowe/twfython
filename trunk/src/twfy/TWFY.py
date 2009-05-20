@@ -22,7 +22,7 @@ import time
 import urllib
 
 #API Spec
-API = {'twfy':{
+API = {'api':{
        'convertURL':[('output', 'url',), ()],
        'getConstituency':[('output', 'postcode',), ()],
        'getConstituencies':[('output',), ('date', 'search', 'latitude', 'longitude', 'distance')],
